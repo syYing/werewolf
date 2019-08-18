@@ -8,32 +8,33 @@ public class Demo {
 
     private Map<Integer, Room> roomMap;
 
-    public int createRoom(List<Player> players) {
-        Collections.shuffle(players);
-        Room room = new Room(players);
-        roomMap.put(room.getRoom_id(), room);
+    public int createRoom(List<Integer> roles) {
+        Room room = new Room(roles);
+        roomMap.put(room.getRoomId(), room);
 
-        return room.getRoom_id();
+        return room.getRoomId();
     }
 
-    public List<Player> enterRoom(int room_id) {
-        List<Player> players = roomMap.get(room_id).getPlayers();
-        Collections.sort(players);
+    public List<Integer> enterRoom(int roomId) {
+        List<Integer> roles = roomMap.get(roomId).getRoles();
+        Collections.sort(roles);
 
-        return players;
+        return roles;
     }
 
-    public int queryRole(int room_id, int seat_id, String ownerKey) {
-        List<Player> players = roomMap.get(room_id).getPlayers();
-        Player player = players.get(seat_id - 1);
+    public int queryRole(int roomId, int seatId, String ownerKey) {
+        Player[] players = roomMap.get(roomId).getPlayers();
+        Player player = players[seatId - 1];
 
-        if (player.getOwnerKey().equals(ownerKey)) {
-            return player.getRole();
-        } else if (player.getOwnerKey().equals("")) {
+        if (player.getOwnerKey() == null) {
             player.setOwnerKey(ownerKey);
             return player.getRole();
         } else {
-            return -1;
+            if (player.getOwnerKey().equals(ownerKey)) {
+                return player.getRole();
+            } else {
+                return 0;
+            }
         }
     }
 }
