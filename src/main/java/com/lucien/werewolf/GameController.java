@@ -21,6 +21,16 @@ public class GameController {
         Room room = new Room(roleList);
         roomMap.put(room.getRoomId(), room);
 
+        TimerTask timerTask = new TimerTask() {
+            @Override
+            public void run() {
+                roomMap.remove(room.getRoomId());
+            }
+        };
+
+        Timer timer = new Timer();
+        timer.schedule(timerTask, 3600000);
+
         JSONObject res = new JSONObject();
         try {
             res.put("id", room.getRoomId());
