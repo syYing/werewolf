@@ -4,6 +4,8 @@ import org.springframework.boot.configurationprocessor.json.JSONException;
 import org.springframework.boot.configurationprocessor.json.JSONObject;
 import org.springframework.boot.json.JsonParser;
 import org.springframework.boot.json.JsonParserFactory;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
@@ -14,10 +16,24 @@ public class GameController {
     private Map<Integer, Room> roomMap = new HashMap<>();
 
     @RequestMapping(value = "/room", method = RequestMethod.POST)
-    public String createRoom(@RequestBody String input) {
+    public String createRoom(@RequestBody String input) throws HttpException {
+        if (input == null) {
+            throw new HttpException(HttpStatus.BAD_REQUEST, "Invalid params");
+        }
+
         JsonParser jsonParser = JsonParserFactory.getJsonParser();
         Map<String, Object> map = jsonParser.parseMap(input);
+
+        if (!(map.get("roles") instanceof ArrayList)) {
+            throw new HttpException(HttpStatus.BAD_REQUEST, "Invalid params");
+        }
+
         List<Integer> roleList = (ArrayList)map.get("roles");
+
+        if (roleList.size() == 0) {
+            throw new HttpException(HttpStatus.BAD_REQUEST, "At least one role must exist");
+        }
+
         Room room = new Room(roleList);
         roomMap.put(room.getRoomId(), room);
 
@@ -33,7 +49,8 @@ public class GameController {
 
         JSONObject res = new JSONObject();
         try {
-            res.put("id", room.getRoomId());
+            res.put("roomId", room.getRoomId());
+            res.put("roles", room.getRoles());
         } catch (JSONException e) {
             e.printStackTrace();
         }
@@ -42,11 +59,30 @@ public class GameController {
     }
 
     @RequestMapping(value = "/room", method = RequestMethod.GET)
-    public List<Integer> enterRoom(@RequestParam("roomId") int roomId) {
-        List<Integer> roles = roomMap.get(roomId).getRoles();
-        Collections.sort(roles);
+    public String enterRoom(@RequestParam("roomId") String input) throws HttpException{
+        if (input == null) {
+            throw new HttpException(HttpStatus.BAD_REQUEST, "No room id");
+        }
 
-        return roles;
+        if (!isNumeric(input)) {
+            throw new HttpException(HttpStatus.BAD_REQUEST, "Invalid room id");
+        }
+
+        int roomId = Integer.parseInt(input);
+
+        if (!roomMap.containsKey(roomId)) {
+            throw new HttpException(HttpStatus.NOT_FOUND, "The room does not exist");
+        }
+
+        JSONObject res = new JSONObject();
+        try {
+            res.put("roomId", roomId);
+            res.put("roles", roomMap.get(roomId).getRoles());
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        return res.toString();
     }
 
     @RequestMapping(value = "/role", method = RequestMethod.GET)
@@ -64,5 +100,20 @@ public class GameController {
                 return 0;
             }
         }
+    }
+
+    @ExceptionHandler(HttpException.class)
+    public ResponseEntity handleHttpException(HttpException e) {
+        return new ResponseEntity(e.getMessage(), e.getStatus());
+    }
+
+    private boolean isNumeric(String s) {
+        try {
+            Integer.parseInt(s);
+        } catch (NumberFormatException e) {
+            return false;
+        }
+
+        return true;
     }
 }

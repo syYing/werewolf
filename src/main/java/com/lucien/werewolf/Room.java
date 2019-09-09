@@ -25,5 +25,7 @@ public class Room {
             Player player = new Player(roles.get(i));
             players[i] = player;
         }
+
+        Collections.sort(roles);
     }
 }
