@@ -59,17 +59,7 @@ public class GameController {
     }
 
     @RequestMapping(value = "/room", method = RequestMethod.GET)
-    public String enterRoom(@RequestParam("roomId") String input) throws HttpException{
-        if (input == null) {
-            throw new HttpException(HttpStatus.BAD_REQUEST, "No room id");
-        }
-
-        if (!isNumeric(input)) {
-            throw new HttpException(HttpStatus.BAD_REQUEST, "Invalid room id");
-        }
-
-        int roomId = Integer.parseInt(input);
-
+    public String enterRoom(@RequestParam("roomId") int roomId) throws HttpException{
         if (!roomMap.containsKey(roomId)) {
             throw new HttpException(HttpStatus.NOT_FOUND, "The room does not exist");
         }
@@ -86,8 +76,17 @@ public class GameController {
     }
 
     @RequestMapping(value = "/role", method = RequestMethod.GET)
-    public int queryRole(@RequestParam("roomId") int roomId, @RequestParam("seatId") int seatId, @RequestParam("ownerKey") String ownerKey) {
+    public int queryRole(@RequestParam("roomId") int roomId, @RequestParam("seatId") int seatId, @RequestParam("ownerKey") String ownerKey) throws HttpException {
+        if (!roomMap.containsKey(roomId)) {
+            throw new HttpException(HttpStatus.NOT_FOUND, "The room does not exist");
+        }
+
         Player[] players = roomMap.get(roomId).getPlayers();
+
+        if (seatId <= 0 || seatId > players.length) {
+            throw new HttpException(HttpStatus.BAD_REQUEST, "Invalid seat");
+        }
+
         Player player = players[seatId - 1];
 
         if (player.getOwnerKey() == null) {
@@ -97,7 +96,7 @@ public class GameController {
             if (player.getOwnerKey().equals(ownerKey)) {
                 return player.getRole();
             } else {
-                return 0;
+                throw new HttpException(HttpStatus.CONFLICT, "The seat has been taken");
             }
         }
     }
@@ -105,15 +104,5 @@ public class GameController {
     @ExceptionHandler(HttpException.class)
     public ResponseEntity handleHttpException(HttpException e) {
         return new ResponseEntity(e.getMessage(), e.getStatus());
-    }
-
-    private boolean isNumeric(String s) {
-        try {
-            Integer.parseInt(s);
-        } catch (NumberFormatException e) {
-            return false;
-        }
-
-        return true;
     }
 }
